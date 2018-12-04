@@ -14,16 +14,42 @@ if ! [[ -f $1 ]]; then
     exit 25
 fi
 
-while read line ; do
+echo 'Считывание файла'
+readarray resultArray < $1
+
+echo 'Сортировка'
+IFS=$'\n' sorted=($(sort <<<"${resultArray[*]:1}"))
+
+echo 'Собираем массив для вывода' $'\n'
+uid=0
+date=0
+sum=0
+arr=()
+
+for value in "${sorted[@]}"
+do
   IFS=","
-  set -- $line
+    set -- $value
 
-  uid=$1
-  date=$2
-  sum=$3
+    if (( $uid != $1 ))
+    then
+      uid=$1
+      date=$2
+      sum=$3
+    fi
 
-  if ((  $(echo "$sum >= $threshold" |bc -l) ))
-  then
-    echo -e "$uid $date $sum"
-  fi
-done < $file
+    if (( $(echo "$sum >= $threshold" | bc -l) ))
+    then
+      subArr=($uid $date)
+      arr[$uid]=${subArr[@]}
+      continue
+    fi
+
+    if (( $uid == $1 ))
+    then
+      date=$2
+      sum=$(echo "$sum+$3" | bc -l )
+    fi
+done
+
+printf "%s\n" "${arr[@]}"
